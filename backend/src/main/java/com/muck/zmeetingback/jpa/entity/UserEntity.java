@@ -1,8 +1,6 @@
 package com.muck.zmeetingback.jpa.entity;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 import java.util.ArrayList;
@@ -12,7 +10,6 @@ import java.util.List;
 @Entity
 @Table(name = "user")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
 public class UserEntity {
 
     @Id
@@ -44,6 +41,9 @@ public class UserEntity {
     @Column(name = "COUNTRY")
     private String country;
 
+    @Column(name = "LOGIN_KIND")
+    private String loginKind;
+
     //google, kakao
     @Column(name = "THIRD_PARTY_KEY_ID")
     private String thirdPartyKeyId;
@@ -65,6 +65,10 @@ public class UserEntity {
     @OneToMany(mappedBy = "userEntity")
     private List<ImageEntity> imageList = new ArrayList<>();
 
+
+    public void changeLoginKind(String loginKind){
+        this.loginKind = loginKind;
+    }
 
 
 }

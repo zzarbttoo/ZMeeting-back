@@ -9,7 +9,6 @@ import javax.persistence.*;
 @Entity
 @Table(name = "image")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
 public class ImageEntity {
 
     @Id
@@ -35,5 +34,20 @@ public class ImageEntity {
     private UserEntity userEntity;
 
 
+    public ImageEntity(String imageLocation, String imageName
+            , Boolean isProfileImage){
+
+        this.imageLocation = imageLocation;
+        this.imageName = imageName;
+        this.isProfileImage = isProfileImage;
+    }
+
+    public void setUserEntity(UserEntity userEntity){
+        this.userEntity = userEntity;
+    }
+
+    public void setGameEntity(GameEntity gameEntity){
+        this.gameEntity = gameEntity;
+    }
 
 }
