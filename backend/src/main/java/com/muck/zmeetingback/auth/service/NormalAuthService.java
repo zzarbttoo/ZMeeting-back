@@ -1,5 +1,6 @@
 package com.muck.zmeetingback.auth.service;
 
+import com.muck.zmeetingback.auth.dto.NormalLoginDTO;
 import com.muck.zmeetingback.auth.dto.NormalUserDTO;
 import com.muck.zmeetingback.auth.dto.WholeUserDTO;
 import com.muck.zmeetingback.jpa.entity.ImageEntity;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.websocket.MessageHandler;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -41,9 +43,9 @@ public class NormalAuthService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public Optional<WholeUserDTO> isNormalUser(String loginId){
+    public Boolean isNormalUser(String loginId){
 
-        return userRepository.findUserEntityByLoginId(loginId);
+        return userRepository.findUserEntityByLoginId(loginId).isPresent();
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -52,14 +54,16 @@ public class NormalAuthService {
         //암호화
         normalUserDTO.setPassword(passwordEncoder.encode(normalUserDTO.getPassword()));
 
-        ModelMapper mapper = customModelMapper.dtoToEntityMapper();
-        UserEntity userEntity = mapper.map(normalUserDTO, UserEntity.class);
+        UserEntity userEntity = customModelMapper.dtoToEntityMapper().map(normalUserDTO, UserEntity.class);
         userEntity.changeLoginKind(NORMAL_LOGIN_TYPE);
 
         userRepository.save(userEntity);
 
+
         //파일 업로드 진행
         if (normalUserDTO.getProfileImage() != null){
+
+            log.info(IMAGE_PATH);
 
             UUID uuid = UUID.randomUUID();
             FileSystemStorageService fileService = new FileSystemStorageService(IMAGE_PATH, uuid);
@@ -72,10 +76,25 @@ public class NormalAuthService {
 
         }
 
-        //TODO : return DTO
-        return null;
+        return customModelMapper.strictMapper().map(userEntity, WholeUserDTO.class);
 
     }
 
 
+    public WholeUserDTO signIn(NormalLoginDTO normalLoginDTO) throws Exception {
+
+        Optional<UserEntity> member = userRepository.findUserEntityByLoginId(normalLoginDTO.getLoginId());
+
+        if(member.isPresent()){
+
+            //password 일치
+            if (passwordEncoder.matches(normalLoginDTO.getPassword(), member.get().getPassword())){
+                return customModelMapper.strictMapper().map(member.get(), WholeUserDTO.class);
+            }else{
+                throw new Exception("password 일치 X");
+            }
+        }else{
+            throw new Exception("해당 아이디 없음");
+        }
+    }
 }

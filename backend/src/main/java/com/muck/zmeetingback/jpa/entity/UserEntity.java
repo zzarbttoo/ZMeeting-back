@@ -9,6 +9,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "user")
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserEntity {
 
@@ -65,6 +66,12 @@ public class UserEntity {
     @OneToMany(mappedBy = "userEntity")
     private List<ImageEntity> imageList = new ArrayList<>();
 
+
+    public UserEntity(String loginId, String password, String nickName) {
+        this.loginId = loginId;
+        this.password = password;
+        this.nickName = nickName;
+    }
 
     public void changeLoginKind(String loginKind){
         this.loginKind = loginKind;
