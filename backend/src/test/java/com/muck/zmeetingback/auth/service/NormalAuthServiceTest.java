@@ -3,19 +3,12 @@ package com.muck.zmeetingback.auth.service;
 import com.muck.zmeetingback.auth.dto.NormalLoginDTO;
 import com.muck.zmeetingback.jpa.entity.UserEntity;
 import com.muck.zmeetingback.jpa.repository.UserRepository;
-import com.muck.zmeetingback.jpa.repository.UserRepositoryCustom;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
-
-import javax.persistence.EntityManager;
-
-import java.awt.image.BandCombineOp;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
@@ -24,11 +17,11 @@ class NormalAuthServiceTest {
 
 
     private final UserRepository userRepository;
-    private final NormalAuthService normalAuthService;
+    private final NormalAuthServiceImpl normalAuthService;
     private final BCryptPasswordEncoder passwordEncoder;
 
     @Autowired
-    public NormalAuthServiceTest(UserRepository userRepository, NormalAuthService normalAuthService
+    public NormalAuthServiceTest(UserRepository userRepository, NormalAuthServiceImpl normalAuthService
             , BCryptPasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.normalAuthService = normalAuthService;
@@ -37,7 +30,6 @@ class NormalAuthServiceTest {
 
     @Test
     public void normalSignUpNoPictureTest(){
-
 
 
     }

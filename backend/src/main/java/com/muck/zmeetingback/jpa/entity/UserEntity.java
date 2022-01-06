@@ -21,6 +21,9 @@ public class UserEntity {
     @Column(name = "LOGIN_ID")
     private String loginId;
 
+    @Column(name = "PRIVATE_ID")
+    private String privateId; //google, kakao unique Id
+
     @Column(name = "PASSWORD")
     private String password;
 

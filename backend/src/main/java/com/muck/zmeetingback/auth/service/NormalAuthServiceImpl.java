@@ -1,22 +1,25 @@
 package com.muck.zmeetingback.auth.service;
 
-import com.muck.zmeetingback.auth.dto.NormalLoginDTO;
-import com.muck.zmeetingback.auth.dto.NormalUserDTO;
-import com.muck.zmeetingback.auth.dto.WholeUserDTO;
+import com.muck.zmeetingback.auth.dto.*;
 import com.muck.zmeetingback.jpa.entity.ImageEntity;
 import com.muck.zmeetingback.jpa.entity.UserEntity;
 import com.muck.zmeetingback.jpa.repository.ImageRepository;
 import com.muck.zmeetingback.jpa.repository.UserRepository;
 import com.muck.zmeetingback.util.CustomModelMapper;
+import com.muck.zmeetingback.util.JwtTokenProvider;
 import com.muck.zmeetingback.util.fileupload.FileSystemStorageService;
+import lombok.extern.java.Log;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.websocket.MessageHandler;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,31 +28,56 @@ import static com.muck.zmeetingback.util.KeyFile.NORMAL_LOGIN_TYPE;
 
 @Service
 @Slf4j
-public class NormalAuthService {
+public class NormalAuthServiceImpl implements AuthService{
 
     private final ImageRepository imageRepository;
     private final UserRepository userRepository;
     private final CustomModelMapper customModelMapper;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final TokenService tokenService;
+    private final JwtTokenProvider provider;
 
 
-    public NormalAuthService(ImageRepository imageRepository,
-                             UserRepository userRepository,
-                             CustomModelMapper customModelMapper,
-                             BCryptPasswordEncoder passwordEncoder) {
+    public NormalAuthServiceImpl(ImageRepository imageRepository, UserRepository userRepository
+            , CustomModelMapper customModelMapper, BCryptPasswordEncoder passwordEncoder
+            , TokenService tokenService, JwtTokenProvider provider) {
         this.imageRepository = imageRepository;
         this.userRepository = userRepository;
         this.customModelMapper = customModelMapper;
         this.passwordEncoder = passwordEncoder;
+        this.tokenService = tokenService;
+        this.provider = provider;
     }
 
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+
+        Optional<UserEntity> userOptional = userRepository.findUserEntityByLoginId(username);
+
+        if (userOptional.isEmpty()){
+            throw new UsernameNotFoundException(username);
+        }
+
+        UserEntity userEntity = userOptional.get();
+
+        return new User(userEntity.getLoginId(), userEntity.getPassword(), true, true
+                , true, true, new ArrayList<>());
+
+    }
+
+    @Override
     public Boolean isNormalUser(String loginId){
 
         return userRepository.findUserEntityByLoginId(loginId).isPresent();
     }
 
-    @Transactional(propagation = Propagation.REQUIRED)
-    public WholeUserDTO signUp(NormalUserDTO normalUserDTO){
+    @Override
+    @Transactional
+    public LoginSuccess signUp(NormalUserDTO normalUserDTO) throws Exception {
+
+        if (isNormalUser(normalUserDTO.getLoginId()) == Boolean.TRUE){
+            throw new Exception("이미 존재하는 아이디 입니다");
+        }
 
         //암호화
         normalUserDTO.setPassword(passwordEncoder.encode(normalUserDTO.getPassword()));
@@ -76,12 +104,18 @@ public class NormalAuthService {
 
         }
 
-        return customModelMapper.strictMapper().map(userEntity, WholeUserDTO.class);
+        WholeUserDTO userDTO = customModelMapper.strictMapper().map(userEntity, WholeUserDTO.class);
+        TokenDTO tokenDTO = provider.createToken(userDTO, new Date());
+        tokenService.saveRefreshToken(tokenDTO, userDTO);
+
+        LoginSuccess loginSuccess = new LoginSuccess(userDTO, tokenDTO);
+
+        return loginSuccess;
 
     }
 
-
-    public WholeUserDTO signIn(NormalLoginDTO normalLoginDTO) throws Exception {
+    @Override
+    public LoginSuccess signIn(NormalLoginDTO normalLoginDTO) throws Exception {
 
         Optional<UserEntity> member = userRepository.findUserEntityByLoginId(normalLoginDTO.getLoginId());
 
@@ -89,7 +123,17 @@ public class NormalAuthService {
 
             //password 일치
             if (passwordEncoder.matches(normalLoginDTO.getPassword(), member.get().getPassword())){
-                return customModelMapper.strictMapper().map(member.get(), WholeUserDTO.class);
+
+                WholeUserDTO userDTO = customModelMapper.strictMapper().map(member.get(), WholeUserDTO.class);
+                TokenDTO tokenDTO = provider.createToken(userDTO, new Date());
+
+                LoginSuccess loginSuccess = new LoginSuccess(userDTO, tokenDTO);
+
+                //TODO : 비동기 처리
+                tokenService.saveRefreshToken(tokenDTO, userDTO);
+
+                return loginSuccess;
+
             }else{
                 throw new Exception("password 일치 X");
             }

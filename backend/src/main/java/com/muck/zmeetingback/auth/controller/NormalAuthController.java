@@ -1,15 +1,17 @@
 package com.muck.zmeetingback.auth.controller;
 
-import com.muck.zmeetingback.auth.dto.NormalLoginDTO;
-import com.muck.zmeetingback.auth.dto.NormalUserDTO;
-import com.muck.zmeetingback.auth.dto.WholeUserDTO;
-import com.muck.zmeetingback.auth.service.NormalAuthService;
+import com.muck.zmeetingback.auth.dto.*;
+import com.muck.zmeetingback.auth.service.NormalAuthServiceImpl;
+import com.muck.zmeetingback.auth.service.TokenService;
+import com.muck.zmeetingback.util.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
+
+import static com.muck.zmeetingback.util.KeyFile.LOGIN_SUCCESS;
+import static com.muck.zmeetingback.util.KeyFile.SIGN_UP_SUCCESS;
 
 @RestController
 @RequestMapping("/auth/normal/")
@@ -17,7 +19,9 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class NormalAuthController {
 
-    private final NormalAuthService normalAuthService;
+    private final NormalAuthServiceImpl normalAuthService;
+    private final TokenService tokenService;
+    private final JwtTokenProvider provider;
 
     @GetMapping(value = "/test")
     public String test(){
@@ -30,28 +34,35 @@ public class NormalAuthController {
     }
 
     @PostMapping(value = "/sign-up")
-    public ResponseEntity<WholeUserDTO> normalSignUp(NormalUserDTO request){
+    public ResponseEntity<?> normalSignUp(NormalUserDTO request){
 
-        WholeUserDTO userDTO = normalAuthService.signUp(request);
+        LoginSuccess loginSuccess = null;
 
-        //TODO : success, fail 객체 만들어서 전달하기
+        try {
+            loginSuccess = normalAuthService.signUp(request);
+            loginSuccess.setRequestMessage(SIGN_UP_SUCCESS);
+            return ResponseEntity.status(HttpStatus.CREATED).body(loginSuccess);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(userDTO);
+        } catch (Exception e) {
+            RequestFail fail = new RequestFail(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(fail);
+        }
+
     }
 
 
-    @PostMapping(value = "/sign-in")
+    @PutMapping(value = "/sign-in")
     public ResponseEntity<?> normalSignIn(@RequestBody NormalLoginDTO normalLoginDTO){
 
-        //TODO : success, fail 객체 만들어서 전달하기
-        //TODO : JWT Token 발급
-
         try {
-            WholeUserDTO userDTO = normalAuthService.signIn(normalLoginDTO);
-            return ResponseEntity.status(HttpStatus.OK).body(userDTO);
+
+            LoginSuccess loginSuccess = normalAuthService.signIn(normalLoginDTO);
+            loginSuccess.setRequestMessage(LOGIN_SUCCESS);
+            return ResponseEntity.status(HttpStatus.OK).body(loginSuccess);
 
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            RequestFail fail = new RequestFail(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(fail);
         }
 
     }

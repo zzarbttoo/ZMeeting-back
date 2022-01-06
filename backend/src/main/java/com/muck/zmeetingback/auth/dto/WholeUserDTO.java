@@ -12,7 +12,7 @@ import java.util.Date;
 @AllArgsConstructor
 public class WholeUserDTO {
 
-    private Long userId;
+    private String loginId;
     private String nickName;
     private String gender;
     private Date birth;
